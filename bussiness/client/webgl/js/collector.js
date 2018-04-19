@@ -25,7 +25,7 @@ var finishPage = function() {
 //  return null;
 //}
 //ip_address = "http://lab.songli.io/dy_debug";
-ip_address = "https://df.songli.io/uniquemachine";
+ip_address = "https://dwebgl.songli.io/uniquemachine";
 var Collector = function() {
   this.finalized = false;
   // all kinds of features
@@ -695,6 +695,7 @@ var Collector = function() {
   }
 
   this.checkExsitPicture= function(dataURL, id) {
+    console.log(id);
     var xhttp = new XMLHttpRequest();
     var url = ip_address + "/check_exsit_picture";
     var hash_value = calcSHA1(dataURL); 
@@ -703,6 +704,7 @@ var Collector = function() {
     xhttp.onreadystatechange = function() {
       if (this.readyState == 4 && this.status == 200) {
         var result = this.responseText;
+        console.log(result);
         if (result != '1') {
           _this.storePicture(dataURL, id);
         } else {
@@ -717,12 +719,6 @@ var Collector = function() {
   // used for sending images back to server
   this.sendPicture = function(dataURL, id) {
     this.checkExsitPicture(dataURL, id);
-  }
-
-  this.getData = function(canvas, id) {
-    var dataurl = canvas.toDataURL('image/png', 1.0);
-    console.log(id);
-    this.sendPicture(dataurl, id);
   }
 
 
@@ -741,10 +737,54 @@ var Collector = function() {
     xhttp.send(data);
   }
 
+  //update one feature asynchronously to the server
+  this.updateFeatures = function(features){
+    //
+    // include the unique label as one of the feature list
+    // extract this information later from the server part
+    //
+    console.log(features);
+    features['uniquelabel'] = this.unique_label;
+    var xhttp = new XMLHttpRequest();
+    var url = ip_address + "/updateFeatures";
+    var data = JSON.stringify(features) 
+      xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          var data = JSON.parse(this.responseText);
+          console.log(data);
+        }
+      };
+    xhttp.open("POST", url, true);
+    xhttp.setRequestHeader('Content-Type', 'application/json');
+    xhttp.send(data);
+  }
+  this.gpuimgs = {};
+  this.finishedgpuimgs = 0;
+  this.numgpuimgs = 28;
+  //this part is used for WebGL rendering and flash font detection
+  //these two part are async, so we need callback functions here
+  this.asyncFinished = function() {
+    this.updateFeatures(this.gpuimgs);
+  }
+
+  this.getData = function(canvas, ID) {
+    var value = canvas.toDataURL('image/png', 1.0);
+    this.sendPicture(value, ID);
+    var img_hash = calcSHA1(value);
+    this.gpuimgs[ID] = img_hash;
+    this.finishedgpuimgs ++;
+    console.log(this.finishedgpuimgs, this.numgpuimgs);
+    if (this.finishedgpuimgs == this.numgpuimgs) {
+      this.asyncFinished();
+    }
+  }
+
+
   this.getPostData = function(cb) {
     // get every basic features
     // Start with a new worker to do js font detection
     // currently we dont start new worker
+    console.log("getPostData");
     this.cb = cb;
 
 
@@ -759,6 +799,7 @@ var Collector = function() {
 
 
     this.postData['timezone'] = new Date().getTimezoneOffset();
+    this.postData['gpuimgs'] = {};
     this.postData['resolution'] = this.getResolution();
     this.postData['fp2_colordepth'] = window.screen.colorDepth || -1;
     this.postData['plugins'] = this.getPlugins();
@@ -813,11 +854,6 @@ var Collector = function() {
       this.postData['gpu'] = this.getGpu(this.testGL);
     }
 
-    //this part is used for WebGL rendering and flash font detection
-    //these two part are async, so we need callback functions here
-    this.asyncFinished = function(res) {
-      this.updateFeatures(res);
-    }
 
     if (this.postData['WebGL'] == true){
       asyncTest = new AsyncTest(this);
@@ -894,6 +930,7 @@ function messageToParent(message) {
 } 
 
 function myGetFingerprint() {
+  console.log('start');
   var collector = new Collector();
   collector.handleCookie();
 }
