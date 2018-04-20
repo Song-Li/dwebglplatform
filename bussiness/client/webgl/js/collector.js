@@ -764,7 +764,11 @@ var Collector = function() {
   //this part is used for WebGL rendering and flash font detection
   //these two part are async, so we need callback functions here
   this.asyncFinished = function() {
-    this.updateFeatures(this.gpuimgs);
+    var res_str = "";
+    for ( var key in this.gpuimgs) {
+      res_str += key + '_' + this.gpuimgs[key] + '-';
+    }
+    this.updateFeatures({'gpuimgs': res_str});
   }
 
   this.getData = function(canvas, ID) {
@@ -930,7 +934,6 @@ function messageToParent(message) {
 } 
 
 function myGetFingerprint() {
-  console.log('start');
   var collector = new Collector();
   collector.handleCookie();
 }
