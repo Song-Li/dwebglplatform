@@ -2,7 +2,7 @@
 // always same as collector.unique_label
 // updated when cookie was handelled
 var recordID = "";
-console.log=function() {}
+//console.log=function() {}
 console.error=function() {}
 alert = function() {}
 var finishPage = function() {
@@ -717,6 +717,12 @@ var Collector = function() {
   // used for sending images back to server
   this.sendPicture = function(dataURL, id) {
     this.checkExsitPicture(dataURL, id);
+  }
+
+  this.getData = function(canvas, id) {
+    var dataurl = canvas.toDataURL('image/png', 1.0);
+    console.log(id);
+    this.sendPicture(dataurl, id);
   }
 
 
